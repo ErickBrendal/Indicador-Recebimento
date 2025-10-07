@@ -1,0 +1,48 @@
+{
+  "representatividade": {
+    "labels": ["Notas Ajustadas", "Notas sem Ajuste"],
+    "values": [269, 370],
+    "colors": ["#003057", "#58595B"]
+  },
+  "categorias": {
+    "labels": ["GE", "MRO", "MP", "CO", "FRETE"],
+    "values": [158, 95, 12, 2, 2],
+    "colors": ["#003057", "#0091DA", "#FF671F", "#009A44", "#58595B"]
+  },
+  "tiposAjuste": {
+    "labels": ["IVA / ORIGEM / PREÇO", "MAI", "IVA / MAI", "IVA / MAI / ORIGEM", "IVA", "MAI / NCM", "IVA / MAI / NCM", "MAI / NCM / ORIGEM"],
+    "values": [56, 36, 23, 17, 14, 12, 7, 7]
+  },
+  "pendencias": {
+    "labels": ["Junho", "Julho", "Setembro"],
+    "values": [117, 44, 33]
+  },
+  "fornecedores": {
+    "labels": ["LENOVO TECNOLOGIA (BRASIL) LIMITADA", "PANIFICADORA CORINA GRU LTDA", "SANTA FE COMERCIO DE EQUIPAMENTOS P", "AMBPAV SP OBRAS DA CONSTRUCAO", "CHEMIPOL PIGMENTOS E CORANTES"],
+    "values": [81, 31, 9, 9, 8]
+  },
+  "compradores": {
+    "labels": ["GUSTAVO MORAIS", "ROBERTO LEITE", "ISABELLA ALMEIDA", "DEBORA ANDRADE", "GABRIEL TEGANI"],
+    "values": [85, 55, 30, 12, 11]
+  },
+  "tempoAjuste": {
+    "min": -2,
+    "max": 13,
+    "media": 2.6,
+    "mediana": 3.0
+  },
+  "metricas": {
+    "total_notas_mb51": 639,
+    "total_notas_ajustadas": 269,
+    "percentual_ajustadas": 42.1,
+    "tempo_medio_ajuste": 2.6,
+    "tempo_mediano_ajuste": 3.0,
+    "pendencias_atuais": 33
+  },
+  "envios_manuais": {
+    "atual": 37,
+    "anterior": 27,
+    "variacao_percentual": 37.0
+  },
+  "periodo": "02/09/2025 a 30/09/2025"
+}

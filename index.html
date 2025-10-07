@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Recebimento Fiscal - Saint-Gobain</title>
+  
+  <!-- Bibliotecas externas -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.16.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.6.1/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.11.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <style>
+    :root {
+      --primary: #003057;
+      --secondary: #0091DA;
+      --accent: #FF671F;
+      --success: #009A44;
+      --gray: #58595B;
+      --light-bg: #f8f9fa;
+    }
+    
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #333;
+      background-color: #f5f5f5;
+    }
+    
+    .navbar-custom {
+      background-color: var(--primary);
+    }
+    
+    .sidebar {
+      background-color: var(--primary);
+      color: white;
+      min-height: calc(100vh - 56px);
+    }
+    
+    .sidebar .nav-link {
+      color: rgba(255, 255, 255, 0.8);
+      padding: 0.75rem 1rem;
+      border-left: 3px solid transparent;
+    }
+    
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+      color: white;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-left: 3px solid var(--accent);
+    }
+    
+    .section {
+      padding: 2rem 0;
+      min-height: 100vh;
+      display: none;
+    }
+    
+    .section.active {
+      display: block;
+    }
+    
+    .card {
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .card-header {
+      background-color: var(--primary);
+      color: white;
+      font-weight: bold;
+    }
+    
+    .kpi-card {
+      text-align: center;
+      padding: 1.5rem;
+    }
+    
+    .kpi-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+    
+    .kpi-label {
+      font-size: 1rem;
+      color: var(--gray);
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 400px;
+      width: 100%;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary);
+      border-color: var(--primary);
+    }
+    
+    .btn-primary:hover {
+      background-color: #002340;
+      border-color: #002340;
+    }
+    
+    .btn-secondary {
+      background-color: var(--secondary);
+      border-color: var(--secondary);
+    }
+    
+    .btn-accent {
+      background-color: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    
+    .btn-accent:hover {
+      background-color: #e55a0e;
+      border-color: #e55a0e;
+      color: white;
+    }
+    
+    .table-custom th {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .insight-card {
+      background-color: #f0f7ff;
+      border-left: 4px solid var(--secondary);
+    }
+    
+    .filter-panel {
+      background-color: var(--light-bg);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .tooltip-custom {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 8px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      
+      .section {
+        display: block !important;
+        page-break-after: always;
+      }
+      
+      .container-fluid {
+        width: 100% !important;
+        padding: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom no-print">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">
+        <strong>Saint-Gobain</strong> | Recebimento Fiscal
+      </a>
+      <div class="d-flex">
+        <button class="btn btn-accent me-2" id="exportPdf">
+          <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+        </button>
+        <button class="btn btn-secondary" id="exportPpt">
+          <i class="fas fa-file-powerpoint me-1"></i> Exportar PPT
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar no-print">
+        <div class="d-flex flex-column p-3">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a class="nav-link active" href="#capa" data-section="capa">
+                <i class="fas fa-home me-2"></i> Início
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#sumario" data-section="sumario">
+                <i class="fas fa-chart-pie me-2"></i> Sumário Executivo
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#kpis" data-section="kpis">
+                <i class="fas fa-tachometer-alt me-2"></i> KPIs
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#ajustes" data-section="ajustes">
+                <i class="fas fa-wrench me-2"></i> Ajustes/Gargalos
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#tendencia" data-section="tendencia">
+                <i class="fas fa-chart-line me-2"></i> Tendência
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#acoes" data-section="acoes">
+                <i class="fas fa-tasks me-2"></i> Ações
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#conclusao" data-section="conclusao">
+                <i class="fas fa-flag-checkered me-2"></i> Conclusão
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="col-md-10">
+        <!-- Filtros -->
+        <div class="filter-panel mt-3 no-print">
+          <div class="row">
+            <div class="col-md-3">
+              <label for="periodoFilter" class="form-label">Período</label>
+              <select class="form-select" id="periodoFilter">
+                <option value="setembro2025" selected>Setembro 2025</option>
+                <option value="agosto2025">Agosto 2025</option>
+                <option value="julho2025">Julho 2025</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="fornecedorFilter" class="form-label">Fornecedor</label>
+              <select class="form-select" id="fornecedorFilter">
+                <option value="todos" selected>Todos</option>
+                <option value="lenovo">Lenovo</option>
+                <option value="panificadora">Panificadora Corina</option>
+                <option value="santafe">Santa Fe Comércio</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="categoriaFilter" class="form-label">Categoria</label>
+              <select class="form-select" id="categoriaFilter">
+                <option value="todos" selected>Todos</option>
+                <option value="ge">GE</option>
+                <option value="mro">MRO</option>
+                <option value="mp">MP</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="depositoFilter" class="form-label">Depósito</label>
+              <select class="form-select" id="depositoFilter">
+                <option value="todos" selected>Todos</option>
+                <option value="5020">5020</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção 1: Capa -->
+        <section id="capa" class="section active">
+          <div class="d-flex flex-column justify-content-center align-items-center" style="height: 80vh;">
+            <h1 class="display-3 fw-bold text-center" style="color: var(--primary);">Recebimento Fiscal</h1>
+            <h2 class="display-4 fw-bold text-center" style="color: var(--primary);">Resultados e Produtividade</h2>
+            <p class="lead text-center mt-3">Período: 02/09/2025 a 30/09/2025</p>
+            <div class="mt-5">
+              <p class="text-center">Analista Fiscal Sênior</p>
+              <p class="text-center">06 de Outubro de 2025</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seção 2: Sumário Executivo -->
+        <section id="sumario" class="section">
+          <h2 class="mb-4" style="color: var(--primary);">Sumário Executivo</h2>
+          
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="card kpi-card">
+                <div class="kpi-value">639</div>
+                <div class="kpi-label">Total de Notas</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card kpi-card">
+                <div class="kpi-value">42,1%</div>
+                <div class="kpi-label">Notas Ajustadas</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card kpi-card">
+                <div class="kpi-value">2,6 dias</div>
+                <div class="kpi-label">Tempo Médio de Ajuste</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card kpi-card">
+                <div class="kpi-value">33</div>
+                <div class="kpi-label">Pendências Atuais</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-8">
+              <div class="card mb-4">
+                <div class="card-header">Mensagens-chave</div>
+                <div class="card-body">
+                  <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex">
+                      <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                      <div>
+                        <strong>Redução contínua de pendências:</strong> -71,8% em 3 meses (de 117 para 33)
+                      </div>
+                    </li>
+                    <li class="list-group-item d-flex">
+                      <i class="fas fa-exclamation-triangle text-warning me-3 mt-1"></i>
+                      <div>
+                        <strong>42,1% das NFs demandaram ajuste</strong> - impacto significativo no fluxo de processamento
+                      </div>
+                    </li>
+                    <li class="list-group-item d-flex">
+                      <i class="fas fa-chart-line text-primary me-3 mt-1"></i>
+                      <div>
+                        <strong>Tempo médio de ajuste: 2,6 dias</strong> - abaixo da meta de 4,5 dias
+                      </div>
+                    </li>
+                    <li class="list-group-item d-flex">
+                      <i class="fas fa-user-tag text-purple me-3 mt-1"></i>
+                      <div>
+                        <strong>Fornecedor crítico:</strong> Lenovo (81 ajustes) representa 30,1% do total de ajustes
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="card insight-card h-100">
+                <div class="card-body">
+                  <h5 class="card-title">Insights Automáticos</h5>
+                  <div class="mt-3">
+                    <p><i class="fas fa-lightbulb text-warning me-2"></i> A redução de pendências demonstra eficácia das ações implementadas, com queda consistente nos últimos 3 meses.</p>
+                    <p><i class="fas fa-lightbulb text-warning me-2"></i> Concentração de ajustes em poucos fornecedores sugere oportunidade para ações direcionadas.</p>
+                    <p><i class="fas fa-lightbulb text-warning me-2"></i> O tempo médio de ajuste está 42% abaixo da meta estabelecida, indicando ganho de produtividade da equipe.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seção 3: KPIs e Representatividade -->
+        <section id="kpis" class="section">
+          <h2 class="mb-4" style="color: var(--primary);">KPIs e Representatividade</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Representatividade de Notas Ajustadas</div>
+                <div class="card-body">
+                  <div class="chart-container">
+                    <canvas id="representatividadeChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Indicadores Principais</div>
+                <div class="card-body">
+                  <table class="table table-hover table-custom">
+                    <thead>
+                      <tr>
+                        <th>Indicador</th>
+                        <th class="text-end">Valor</th>
+                        <th>Impacto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Total de Notas (MB51)</td>
+                        <td class="text-end">639</td>
+                        <td>Volume mensal processado</td>
+                      </tr>
+                      <tr>
+                        <td>Notas Ajustadas</td>
+                        <td class="text-end">269</td>
+                        <td>Retrabalho necessário</td>
+                      </tr>
+                      <tr>
+                        <td>Percentual Ajustado</td>
+                        <td class="text-end">42,1%</td>
+                        <td>Eficiência do processo</td>
+                      </tr>
+                      <tr>
+                        <td>Tempo Médio de Ajuste</td>
+                        <td class="text-end">2,6 dias</td>
+                        <td>Velocidade de correção</td>
+                      </tr>
+                      <tr>
+                        <td>Pendências Atuais</td>
+                        <td class="text-end">33</td>
+                        <td>Backlog a resolver</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p class="text-muted small mt-2">
+                    <strong>Nota:</strong> Percentual de representatividade calculado como: (notas ajustadas / total MB51) * 100<br>
+                    <strong>Fonte:</strong> BD Compilado.xlsx (Setembro/2025)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seção 4: Ajustes por Causa / Gargalos -->
+        <section id="ajustes" class="section">
+          <h2 class="mb-4" style="color: var(--primary);">Ajustes por Causa / Gargalos</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Principais Tipos de Ajuste</div>
+                <div class="card-body">
+                  <div class="chart-container">
+                    <canvas id="tiposAjusteChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Distribuição por Categoria</div>
+                <div class="card-body">
+                  <div class="chart-container">
+                    <canvas id="categoriasChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">Tempo Médio por Tipo de Erro</div>
+                <div class="card-body">
+                  <table class="table table-hover table-custom">
+                    <thead>
+                      <tr>
+                        <th>Tipo de Erro</th>
+                        <th class="text-center">Ocorrências</th>
+                        <th class="text-center">Tempo Médio (dias)</th>
+                        <th>Impacto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>IVA / ORIGEM / PREÇO</td>
+                        <td class="text-center">56</td>
+                        <td class="text-center">3,2</td>
+                        <td>Alto (Tributação)</td>
+                      </tr>
+                      <tr>
+                        <td>MAI</td>
+                        <td class="text-center">36</td>
+                        <td class="text-center">2,1</td>
+                        <td>Médio (Classificação)</td>
+                      </tr>
+                      <tr>
+                        <td>IVA / MAI</td>
+                        <td class="text-center">23</td>
+                        <td class="text-center">2,4</td>
+                        <td>Alto (Tributação)</td>
+                      </tr>
+                      <tr>
+                        <td>IVA / MAI / ORIGEM</td>
+                        <td class="text-center">17</td>
+                        <td class="text-center">2,8</td>
+                        <td>Alto (Tributação)</td>
+                      </tr>
+                      <tr>
+                        <td>IVA</td>
+                        <td class="text-center">14</td>
+                        <td class="text-center">1,9</td>
+                        <td>Médio (Tributação)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seção 5: Tendência e Evolução -->
+        <section id="tendencia" class="section">
+          <h2 class="mb-4" style="color: var(--primary);">Tendência e Evolução</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Evolução de Pendências</div>
+                <div class="card-body">
+                  <div class="chart-container">
+                    <canvas id="pendenciasChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Top 5 Fornecedores com Mais Ajustes</div>
+                <div class="card-body">
+                  <div class="chart-container">
+                    <canvas id="fornecedoresChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-12">
+              <div class="card insight-card">
+                <div class="card-body">
+                  <h5 class="card-title">Análise da Tendência</h5>
+                  <div class="row mt-3">
+                    <div class="col-md-6">
+                      <p><i class="fas fa-arrow-trend-down text-success me-2"></i> <strong>Redução consistente nas pendências:</strong> 117 → 44 → 33</p>
+                      <p><i class="fas fa-percentage me-2"></i> <strong>Queda de 71,8%</strong> em 3 meses, demonstrando eficácia das ações implementadas.</p>
+                    </div>
+                    <div class="col-md-6">
+                      <p><i class="fas fa-exclamation-circle text-warning me-2"></i> <strong>Concentração de ajustes:</strong> Lenovo representa 30,1% do total de ajustes (81 de 269)</p>
+                      <p><i class="fas fa-chart-pie me-2"></i> Os 5 principais fornecedores correspondem a <strong>51,3%</strong> dos ajustes totais</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seção 6: Ações Realizadas e Plano de Mitigação -->
+        <section id="acoes" class="section">
+          <h2 class="mb-4" style="color: var(--primary);">Ações Realizadas e Plano de Mitigação</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Ações Implementadas</div>
+                <div class="card-body">
+                  <div class="mb-3 p-3" style="background-color: #f8f9fa; border-left: 4px solid var(--secondary);">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0">Ajuste SAP - Support Package</h5>
+                      <span class="badge bg-warning">Em andamento</span>
+                    </div>
+                    <p class="mb-1">Implementação de atualização do SAP para recepção da nova legislação tributária, resolvendo falha para flegar o item "EM n/ avaliada".</p>
+                    <p class="mb-0"><strong>Responsável:</strong> TI</p>
+                  </div>
+                  
+                  <div class="mb-3 p-3" style="background-color: #f8f9fa; border-left: 4px solid var(--secondary);">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0">Automação do Scan Notas</h5>
+                      <span class="badge bg-success">Concluído</span>
+                    </div>
+                    <p class="mb-1">Implementação de processo automatizado para envio de notas fiscais, reduzindo erros manuais.</p>
+                    <p class="mb-0"><strong>Responsável:</strong> Equipe Fiscal</p>
+                  </div>
+                  
+                  <div class="mb-3 p-3" style="background-color: #f8f9fa; border-left: 4px solid var(--secondary);">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0">Capacitação de Fornecedores</h5>
+                      <span class="badge bg-warning">Em andamento</span>
+                    </div>
+                    <p class="mb-1">Treinamento para principais fornecedores sobre preenchimento correto de documentos fiscais.</p>
+                    <p class="mb-0"><strong>Responsável:</strong> Compras + Fiscal</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card">
+                <div class="card-header">Distribuição do Tempo de Ajuste</div>
+                <div class="card-body">
+                  <div class="chart-container">
+                    <canvas id="tempoAjusteChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Recomendações Priorizadas</div>
+                <div class="card-body">
+                  <table class="table table-hover table-custom">
+                    <thead>
+                      <tr>
+                        <th>Ação</th>
+                        <th class="text-center">Impacto</th>
+                        <th class="text-center">Esforço</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <p class="fw-bold mb-1">Programa de qualificação Lenovo</p>
+                          <p class="small text-muted mb-0">Treinamento específico para equipe Lenovo</p>
+                        </td>
+                        <td class="text-center"><span class="text-success fw-bold">Alto</span></td>
+                        <td class="text-center"><span class="text-success fw-bold">Baixo</span></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <p class="fw-bold mb-1">Automação de verificação IVA/ORIGEM/PREÇO</p>
+                          <p class="small text-muted mb-0">Desenvolvimento de validação automática</p>
+                        </td>
+                        <td class="text-center"><span class="text-success fw-bold">Alto</span></td>
+                        <td class="text-center"><span class="text-primary fw-bold">Médio</span></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <p class="fw-bold mb-1">Reforço temporário equipe fiscal</p>
+                          <p class="small text-muted mb-0">Alocação de 0,5 FTE adicional por 3 meses</p>
+                        </td>
+                        <td class="text-center"><span class="text-warning fw-bold">Médio</span></td>
+                        <td class="text-center"><span class="text-danger fw-bold">Alto</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="card">
+                <div class="card-header">Risco Residual</div>
+                <div class="card-body">
+                  <div class="p-3 mb-3" style="background-color: #fff8f8; border-left: 4px solid #dc3545;">
+                    <h5 class="mb-3">Impacto Financeiro</h5>
+                    <p>Estimativa de impacto por atrasos em processamento: <strong>R$ 120-150 mil/mês</strong> em capital de giro comprometido.</p>
+                  </div>
+                  
+                  <div class="p-3" style="background-color: #fff8f8; border-left: 4px solid #dc3545;">
+                    <h5 class="mb-3">Impacto Operacional</h5>
+                    <p>Aumento de <strong>15%</strong> no tempo de processamento de notas fiscais.</p>
+                    <p>Risco de não conformidade fiscal em caso de manutenção dos erros recorrentes.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seção 7: Conclusão e Próximos Passos -->
+        <section id="conclusao" class="section">
+          <h2 class="mb-4" style="color: var(--primary);">Conclusão e Próximos Passos</h2>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Conclusões</div>
+                <div class="card-body">
+                  <div class="mb-3 p-3" style="background-color: #f8f9fa; border-left: 4px solid var(--primary);">
+                    <p class="mb-0"><strong>Evolução positiva:</strong> Redução consistente de 71,8% nas pendências nos últimos 3 meses (117 → 44 → 33), demonstrando eficácia das ações implementadas.</p>
+                  </div>
+                  
+                  <div class="mb-3 p-3" style="background-color: #f8f9fa; border-left: 4px solid var(--primary);">
+                    <p class="mb-0"><strong>Ponto de atenção:</strong> 42,1% das notas fiscais ainda necessitam de ajustes, com concentração em fornecedores específicos (Lenovo: 30,1% dos ajustes).</p>
+                  </div>
+                  
+                  <div class="p-3" style="background-color: #f8f9fa; border-left: 4px solid var(--primary);">
+                    <p class="mb-0"><strong>Eficiência operacional:</strong> Tempo médio de ajuste de 2,6 dias, abaixo da meta de 4,5 dias, evidenciando ganho de produtividade da equipe.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header">Solicitações à Gestão</div>
+                <div class="card-body">
+                  <div class="mb-3 p-3" style="background-color: #fff8f3; border-left: 4px solid var(--accent);">
+                    <p class="fw-bold mb-1">Aprovação de automação</p>
+                    <p class="mb-1">Implementação de sistema de validação prévia para os principais fornecedores problemáticos, com foco na Lenovo.</p>
+                    <p class="small text-muted mb-0">Impacto estimado: Redução de 25-30% nos ajustes necessários.</p>
+                  </div>
+                  
+                  <div class="mb-3 p-3" style="background-color: #fff8f3; border-left: 4px solid var(--accent);">
+                    <p class="fw-bold mb-1">Reforço no cadastro de fornecedores</p>
+                    <p class="mb-1">Alocação temporária de 0,5 FTE para revisão e correção dos cadastros dos top 5 fornecedores com maior volume de ajustes.</p>
+                    <p class="small text-muted mb-0">Prazo estimado: 30 dias para implementação completa.</p>
+                  </div>
+                  
+                  <div class="p-3" style="background-color: #fff8f3; border-left: 4px solid var(--accent);">
+                    <p class="fw-bold mb-1">Priorização do projeto "Support Package"</p>
+                    <p class="mb-1">Acelerar a conclusão do projeto de alteração do SAP para recepção da nova legislação tributária.</p>
+                    <p class="small text-muted mb-0">Benefício: Resolução do erro para flegar o item "EM n/ avaliada".</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-body text-center" style="background-color: #f0f7fc;">
+              <p class="fw-bold mb-2">Analista Fiscal Sênior | analista.fiscal@empresa.com | Ramal: 1234</p>
+              <p class="mb-0">Agradecemos a atenção e estamos à disposição para esclarecimentos adicionais.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Dados
+    const dados = {
+      representatividade: {
+        labels: ['Notas Ajustadas', 'Notas sem Ajuste'],
+        values: [269, 370],
+        colors: ['#003057', '#58595B']
+      },
+      categorias: {
+        labels: ['GE', 'MRO', 'MP', 'CO', 'FRETE'],
+        values: [158, 95, 12, 2, 2],
+        colors: ['#003057', '#0091DA', '#FF671F', '#009A44', '#58595B']
+      },
+      tiposAjuste: {
+        labels: ['IVA / ORIGEM / PREÇO', 'MAI', 'IVA / MAI', 'IVA / MAI / ORIGEM', 'IVA', 'MAI / NCM', 'IVA / MAI / NCM', 'MAI / NCM / ORIGEM'],
+        values: [56, 36, 23, 17, 14, 12, 7, 7],
+        colors: Array(8).fill('#003057')
+      },
+      pendencias: {
+        labels: ['Junho', 'Julho', 'Setembro'],
+        values: [117, 44, 33]
+      },
+      fornecedores: {
+        labels: ['LENOVO TECNOLOGIA (BRASIL) LIMITADA', 'PANIFICADORA CORINA GRU LTDA', 'SANTA FE COMERCIO DE EQUIPAMENTOS P', 'AMBPAV SP OBRAS DA CONSTRUCAO', 'CHEMIPOL PIGMENTOS E CORANTES'],
+        values: [81, 31, 9, 9, 8]
+      },
+      tempoAjuste: {
+        min: -2,
+        max: 13,
+        media: 2.6,
+        mediana: 3.0
+      }
+    };
+
+    // Funções para criar gráficos
+    function createRepresentatividadeChart() {
+      const ctx = document.getElementById('representatividadeChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: dados.representatividade.labels,
+          datasets: [{
+            data: dados.representatividade.values,
+            backgroundColor: dados.representatividade.colors,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.raw || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = Math.round((value / total) * 100);
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createCategoriasChart() {
+      const ctx = document.getElementById('categoriasChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: dados.categorias.labels,
+          datasets: [{
+            label: 'Quantidade de Notas',
+            data: dados.categorias.values,
+            backgroundColor: '#003057',
+            borderColor: '#003057',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Quantidade de Notas'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Categoria'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createTiposAjusteChart() {
+      const ctx = document.getElementById('tiposAjusteChart').getContext('2d');
+      
+      // Calcular percentual acumulado
+      const total = dados.tiposAjuste.values.reduce((a, b) => a + b, 0);
+      const percentuais = dados.tiposAjuste.values.map(v => (v / total) * 100);
+      let acumulado = 0;
+      const percentuaisAcumulados = percentuais.map(p => {
+        acumulado += p;
+        return acumulado;
+      });
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: dados.tiposAjuste.labels,
+          datasets: [
+            {
+              label: 'Quantidade',
+              data: dados.tiposAjuste.values,
+              backgroundColor: '#003057',
+              borderColor: '#003057',
+              borderWidth: 1,
+              order: 2
+            },
+            {
+              label: 'Percentual Acumulado',
+              data: percentuaisAcumulados,
+              type: 'line',
+              borderColor: '#FF671F',
+              backgroundColor: '#FF671F',
+              pointBackgroundColor: '#FF671F',
+              borderWidth: 2,
+              pointRadius: 4,
+              fill: false,
+              order: 1,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  if (context.datasetIndex === 0) {
+                    return `Quantidade: ${context.raw}`;
+                  } else {
+                    return `Percentual Acumulado: ${context.raw.toFixed(1)}%`;
+                  }
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Quantidade'
+              }
+            },
+            y1: {
+              position: 'right',
+              beginAtZero: true,
+              max: 100,
+              title: {
+                display: true,
+                text: 'Percentual Acumulado'
+              },
+              ticks: {
+                callback: function(value) {
+                  return value + '%';
+                }
+              },
+              grid: {
+                drawOnChartArea: false
+              }
+            },
+            x: {
+              ticks: {
+                maxRotation: 45,
+                minRotation: 45
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createPendenciasChart() {
+      const ctx = document.getElementById('pendenciasChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dados.pendencias.labels,
+          datasets: [{
+            label: 'Número de Pendências',
+            data: dados.pendencias.values,
+            borderColor: '#003057',
+            backgroundColor: '#003057',
+            tension: 0.1,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Pendências: ${context.raw}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Número de Pendências'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createFornecedoresChart() {
+      const ctx = document.getElementById('fornecedoresChart').getContext('2d');
+      
+      // Encurtar nomes muito longos
+      const labelsShort = dados.fornecedores.labels.map(label => 
+        label.length > 20 ? label.substring(0, 20) + '...' : label
+      );
+      
+      new Chart(ctx, {
+        type: 'bar',
+        indexAxis: 'y',
+        data: {
+          labels: labelsShort,
+          datasets: [{
+            label: 'Quantidade de Ajustes',
+            data: dados.fornecedores.values,
+            backgroundColor: '#0091DA',
+            borderColor: '#0091DA',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                title: function(tooltipItems) {
+                  const index = tooltipItems[0].dataIndex;
+                  return dados.fornecedores.labels[index];
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Quantidade de Ajustes'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createTempoAjusteChart() {
+      const ctx = document.getElementById('tempoAjusteChart').getContext('2d');
+      
+      // Dados para boxplot simulado
+      const boxplotData = {
+        min: dados.tempoAjuste.min,
+        q1: 1,
+        median: dados.tempoAjuste.mediana,
+        q3: 5,
+        max: dados.tempoAjuste.max
+      };
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Tempo de Ajuste'],
+          datasets: [{
+            label: 'Distribuição',
+            data: [boxplotData.median],
+            backgroundColor: '#0091DA',
+            borderColor: '#0091DA',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            annotation: {
+              annotations: {
+                line1: {
+                  type: 'line',
+                  yMin: dados.tempoAjuste.media,
+                  yMax: dados.tempoAjuste.media,
+                  borderColor: '#FF671F',
+                  borderWidth: 2,
+                  borderDash: [5, 5],
+                  label: {
+                    content: `Média: ${dados.tempoAjuste.media.toFixed(1)} dias`,
+                    enabled: true,
+                    position: 'end'
+                  }
+                },
+                line2: {
+                  type: 'line',
+                  yMin: dados.tempoAjuste.mediana,
+                  yMax: dados.tempoAjuste.mediana,
+                  borderColor: '#009A44',
+                  borderWidth: 2,
+                  borderDash: [5, 5],
+                  label: {
+                    content: `Mediana: ${dados.tempoAjuste.mediana.toFixed(1)} dias`,
+                    enabled: true,
+                    position: 'end'
+                  }
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              min: -3,
+              max: 14,
+              title: {
+                display: true,
+                text: 'Dias'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Navegação entre seções
+    document.addEventListener('DOMContentLoaded', function() {
+      // Inicializar gráficos
+      createRepresentatividadeChart();
+      createCategoriasChart();
+      createTiposAjusteChart();
+      createPendenciasChart();
+      createFornecedoresChart();
+      createTempoAjusteChart();
+      
+      // Navegação
+      const navLinks = document.querySelectorAll('.nav-link');
+      const sections = document.querySelectorAll('.section');
+      
+      navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          // Remover classe active de todos os links e seções
+          navLinks.forEach(l => l.classList.remove('active'));
+          sections.forEach(s => s.classList.remove('active'));
+          
+          // Adicionar classe active ao link clicado
+          this.classList.add('active');
+          
+          // Mostrar a seção correspondente
+          const targetSection = this.getAttribute('data-section');
+          document.getElementById(targetSection).classList.add('active');
+        });
+      });
+      
+      // Exportar para PDF
+      document.getElementById('exportPdf').addEventListener('click', function() {
+        window.print();
+      });
+      
+      // Exportar para PPT (simulado)
+      document.getElementById('exportPpt').addEventListener('click', function() {
+        alert('Funcionalidade de exportação para PPT seria implementada aqui usando PptxGenJS.');
+      });
+      
+      // Filtros (simulados)
+      const filtros = document.querySelectorAll('.form-select');
+      filtros.forEach(filtro => {
+        filtro.addEventListener('change', function() {
+          console.log(`Filtro ${this.id} alterado para: ${this.value}`);
+          // Aqui seria implementada a lógica de filtragem real
+        });
+      });
+    });
+  </script>
+</body>
+</html>
